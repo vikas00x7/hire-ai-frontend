@@ -303,10 +303,6 @@ export default function CreateJob() {
                 >
                   Cancel
                 </Button>
-                <Button variant="outline" className="flex-1">
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Draft
-                </Button>
                 <Button
                   className="flex-1 bg-gray-800 hover:bg-gray-900"
                   onClick={() => navigate("/jobs")}

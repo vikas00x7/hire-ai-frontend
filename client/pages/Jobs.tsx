@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ViewModal } from "@/components/ViewModal";
-import { FilterModal } from "@/components/FilterModal";
+import { FilterDropdown } from "@/components/FilterDropdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +110,7 @@ const jobPostingsData = [
 
 export default function Jobs() {
   const navigate = useNavigate();
-  const [showFilterModal, setShowFilterModal] = useState(false);
+
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -204,22 +204,11 @@ export default function Jobs() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="text-gray-700 border-gray-200"
-                onClick={() => setShowFilterModal(true)}
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
-              <Button
-                variant="outline"
-                className="text-gray-700 border-gray-200"
-                onClick={exportJobsData}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
+              <FilterDropdown
+                fields={filterFields}
+                onApply={handleApplyFilters}
+                initialValues={appliedFilters}
+              />
               <Button
                 className="bg-gray-800 hover:bg-gray-900 text-white"
                 onClick={() => navigate("/jobs/create")}
@@ -293,40 +282,38 @@ export default function Jobs() {
         {/* Job Postings List */}
         <div className="bg-white rounded-lg border border-gray-200">
           {/* Header Row */}
-          <div className="flex items-center justify-between p-6 bg-gray-50 border-b border-gray-200">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="min-w-[200px]">
-                <span className="text-sm font-semibold text-gray-700">
-                  Job Title
-                </span>
-              </div>
-              <div className="min-w-[120px]">
-                <span className="text-sm font-semibold text-gray-700">
-                  Department
-                </span>
-              </div>
-              <div className="min-w-[100px]">
-                <span className="text-sm font-semibold text-gray-700">
-                  Status
-                </span>
-              </div>
-              <div className="min-w-[100px]">
-                <span className="text-sm font-semibold text-gray-700">
-                  Created
-                </span>
-              </div>
-              <div className="min-w-[100px]">
-                <span className="text-sm font-semibold text-gray-700">
-                  Closed
-                </span>
-              </div>
-              <div className="min-w-[100px]">
-                <span className="text-sm font-semibold text-gray-700">
-                  Applicants
-                </span>
-              </div>
+          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_0.5fr] items-center p-6 bg-gray-50 border-b border-gray-200 min-w-[900px] w-full">
+            <div>
+              <span className="text-sm font-semibold text-gray-700">
+                Job Title
+              </span>
             </div>
-            <div className="flex gap-2">
+            <div>
+              <span className="text-sm font-semibold text-gray-700">
+                Department
+              </span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold text-gray-700">
+                Status
+              </span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold text-gray-700">
+                Created Date
+              </span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold text-gray-700">
+                Closed Date
+              </span>
+            </div>
+            <div>
+              <span className="text-sm font-semibold text-gray-700">
+                Applicants
+              </span>
+            </div>
+            <div className="text-right">
               <span className="text-sm font-semibold text-gray-700">
                 Actions
               </span>
@@ -337,15 +324,11 @@ export default function Jobs() {
             {jobPostingsData.map((job, index) => (
               <div
                 key={job.id}
-                className={`flex items-center justify-between p-6 ${
-                  index !== jobPostingsData.length - 1
-                    ? "border-b border-gray-100"
-                    : ""
-                }`}
+                className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_0.5fr] items-center p-6 border-b border-gray-100"
+                style={{minHeight: "74px"}}
               >
-                <div className="flex items-center gap-4 flex-1">
                   {/* Job Title */}
-                  <div className="min-w-[200px]">
+                  <div>
                     <h3 className="font-semibold text-gray-900">{job.title}</h3>
                     <div className="flex items-center gap-2 mt-1">
                       <MapPin className="h-3 w-3 text-gray-400" />
@@ -358,12 +341,12 @@ export default function Jobs() {
                   </div>
 
                   {/* Department */}
-                  <div className="min-w-[120px]">
+                  <div>
                     <p className="text-sm text-gray-600">{job.department}</p>
                   </div>
 
                   {/* Status */}
-                  <div className="min-w-[100px]">
+                  <div>
                     <Badge
                       className={`${job.statusColor} border-none font-medium`}
                     >
@@ -372,29 +355,28 @@ export default function Jobs() {
                   </div>
 
                   {/* Created Date */}
-                  <div className="min-w-[100px]">
+                  <div>
                     <p className="text-sm text-gray-600">
                       {formatDate(job.createdDate)}
                     </p>
                   </div>
 
                   {/* Closed Date */}
-                  <div className="min-w-[100px]">
+                  <div>
                     <p className="text-sm text-gray-600">
                       {job.closedDate ? formatDate(job.closedDate) : "-"}
                     </p>
                   </div>
 
                   {/* Applicants */}
-                  <div className="min-w-[100px]">
+                  <div>
                     <p className="text-sm font-medium text-gray-900">
                       {job.applicants}
                     </p>
                   </div>
-                </div>
 
                 {/* Action Menu */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-end">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -434,15 +416,7 @@ export default function Jobs() {
         </div>
       </div>
 
-      {/* Filter Modal */}
-      <FilterModal
-        open={showFilterModal}
-        onOpenChange={setShowFilterModal}
-        title="Filter Job Postings"
-        fields={filterFields}
-        onApply={handleApplyFilters}
-        initialValues={appliedFilters}
-      />
+
 
       {/* View Modal */}
       <ViewModal

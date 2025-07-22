@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ViewModal } from "@/components/ViewModal";
-import { FilterModal } from "@/components/FilterModal";
+import { FilterDropdown } from "@/components/FilterDropdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -31,6 +32,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { teamMemberFormSchema, type TeamMemberFormValues } from "@/lib/validations/teamMemberValidation";
 import * as XLSX from "xlsx";
 import {
   Users,
@@ -137,11 +141,65 @@ const teamMembers = [
 ];
 
 export default function Team() {
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showEditMemberModal, setShowEditMemberModal] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
   const [appliedFilters, setAppliedFilters] = useState({});
+
+  // Define the Add Member form
+  const addMemberForm = useForm<TeamMemberFormValues>({
+    resolver: zodResolver(teamMemberFormSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      designation: "",
+      department: "",
+      experience: "",
+    },
+  });
+
+  // Define the Edit Member form
+  const editMemberForm = useForm<TeamMemberFormValues>({
+    resolver: zodResolver(teamMemberFormSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      designation: "",
+      department: "",
+      experience: "",
+    },
+  });
+
+  // Update form values when editing member changes
+  useEffect(() => {
+    if (editingMember) {
+      editMemberForm.reset({
+        fullName: editingMember.name || "",
+        email: editingMember.email || "",
+        phone: editingMember.phone || "",
+        designation: editingMember.designation || "",
+        department: editingMember.department || "",
+        experience: editingMember.experience?.toString() || "",
+      });
+    }
+  }, [editingMember, editMemberForm]);
+
+  const handleAddMemberSubmit = (data: TeamMemberFormValues) => {
+    console.log("Adding new member:", data);
+    // Here you would normally submit the data to an API
+    setShowAddMemberModal(false);
+    addMemberForm.reset();
+  };
+
+  const handleEditMemberSubmit = (data: TeamMemberFormValues) => {
+    console.log("Updating member:", data);
+    // Here you would normally update the data through an API
+    setShowEditMemberModal(false);
+  };
 
   const exportTeamData = () => {
     // Prepare team data for export
@@ -211,22 +269,11 @@ export default function Team() {
               <p className="text-gray-600">Manage and connect team members</p>
             </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="text-gray-700 border-gray-200"
-                onClick={() => setShowFilterModal(true)}
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
-              <Button
-                variant="outline"
-                className="text-gray-700 border-gray-200"
-                onClick={exportTeamData}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
+              <FilterDropdown
+                fields={filterFields}
+                onApply={handleApplyFilters}
+                initialValues={appliedFilters}
+              />
               <Dialog
                 open={showAddMemberModal}
                 onOpenChange={setShowAddMemberModal}
@@ -241,161 +288,154 @@ export default function Team() {
                   <DialogHeader>
                     <DialogTitle>Add New Team Member</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-6 py-4">
-                    {/* Profile Picture Upload */}
-                    <div className="space-y-4">
-                      <h4 className="text-md font-medium text-gray-900">
-                        Profile Picture (Optional)
-                      </h4>
-                      <div className="flex items-center gap-6">
-                        <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
-                          <Camera className="h-8 w-8 text-gray-400" />
-                        </div>
-                        <div className="space-y-2">
-                          <Button
-                            variant="outline"
-                            className="text-gray-700 border-gray-200"
-                          >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Upload Picture
-                          </Button>
-                          <p className="text-xs text-gray-500">
-                            JPG, PNG. Max size 2MB.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                  <Form {...addMemberForm}>
+                    <form onSubmit={addMemberForm.handleSubmit(handleAddMemberSubmit)} className="space-y-6 py-4">
+                      {/* Basic Information */}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <FormField
+                          control={addMemberForm.control}
+                          name="fullName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Enter full name (alphabets only)" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                    {/* Basic Information */}
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="fullName">Full Name *</Label>
-                        <Input
-                          id="fullName"
-                          placeholder="Enter full name"
-                          required
+                        <FormField
+                          control={addMemberForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email Address *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="email" 
+                                  placeholder="Enter email address" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email Address *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="Enter email address"
-                          required
-                        />
-                      </div>
-                    </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number *</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="Enter phone number"
-                          required
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <FormField
+                          control={addMemberForm.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone Number *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="tel" 
+                                  placeholder="+91-XXXXXXXXXX or 10 digits" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="experience">Experience (Years) *</Label>
-                        <Input
-                          id="experience"
-                          type="number"
-                          placeholder="e.g., 5"
-                          required
-                        />
-                      </div>
-                    </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="department">Department *</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="engineering">
-                              Engineering
-                            </SelectItem>
-                            <SelectItem value="design">Design</SelectItem>
-                            <SelectItem value="product">Product</SelectItem>
-                            <SelectItem value="hr">Human Resources</SelectItem>
-                            <SelectItem value="marketing">Marketing</SelectItem>
-                            <SelectItem value="sales">Sales</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="designation">Designation *</Label>
-                        <Input
-                          id="designation"
-                          placeholder="e.g., Senior Developer"
-                          required
+                        <FormField
+                          control={addMemberForm.control}
+                          name="experience"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Experience (Years) *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  placeholder="e.g., 5" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="role">Role Description</Label>
-                      <Textarea
-                        id="role"
-                        placeholder="Brief description of the role and responsibilities..."
-                        className="min-h-[80px]"
-                      />
-                    </div>
-
-                    {/* Resume Upload */}
-                    <div className="space-y-2">
-                      <Label htmlFor="memberResume">
-                        Resume or CV (Optional)
-                      </Label>
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
-                        <input
-                          type="file"
-                          id="memberResume"
-                          accept=".pdf,.doc,.docx"
-                          className="hidden"
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <FormField
+                          control={addMemberForm.control}
+                          name="department"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Department *</FormLabel>
+                              <Select 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select department" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="engineering">Engineering</SelectItem>
+                                  <SelectItem value="design">Design</SelectItem>
+                                  <SelectItem value="product">Product</SelectItem>
+                                  <SelectItem value="hr">Human Resources</SelectItem>
+                                  <SelectItem value="marketing">Marketing</SelectItem>
+                                  <SelectItem value="sales">Sales</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
-                        <label
-                          htmlFor="memberResume"
-                          className="cursor-pointer flex flex-col items-center gap-2"
+
+                        <FormField
+                          control={addMemberForm.control}
+                          name="designation"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Designation *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="e.g., Senior Developer" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      {/* Form Actions */}
+                      <div className="flex gap-3 pt-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            setShowAddMemberModal(false);
+                            addMemberForm.reset();
+                          }}
                         >
-                          <Upload className="h-8 w-8 text-gray-400" />
-                          <div className="text-sm text-gray-600">
-                            <span className="font-medium text-blue-600 hover:text-blue-500">
-                              Click to upload
-                            </span>
-                            {" or drag and drop"}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            PDF, DOC up to 10MB
-                          </div>
-                        </label>
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          className="flex-1 bg-gray-800 hover:bg-gray-900"
+                        >
+                          Add Member
+                        </Button>
                       </div>
-                    </div>
-
-                    {/* Form Actions */}
-                    <div className="flex gap-3 pt-4">
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => setShowAddMemberModal(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        className="flex-1 bg-gray-800 hover:bg-gray-900"
-                        onClick={() => {
-                          // Handle form submission here
-                          setShowAddMemberModal(false);
-                        }}
-                      >
-                        Add Member
-                      </Button>
-                    </div>
-                  </div>
+                    </form>
+                  </Form>
                 </DialogContent>
               </Dialog>
             </div>
@@ -443,22 +483,22 @@ export default function Team() {
           {/* Header Row */}
           <div className="flex items-center justify-between p-6 bg-gray-50 border-b border-gray-200">
             <div className="flex items-center gap-4 flex-1">
-              <div className="min-w-[200px]">
+              <div className="w-[250px]">
                 <span className="text-sm font-semibold text-gray-700">
                   Name
                 </span>
               </div>
-              <div className="min-w-[120px]">
+              <div className="w-[160px]">
                 <span className="text-sm font-semibold text-gray-700">
                   Department
                 </span>
               </div>
-              <div className="min-w-[140px]">
+              <div className="w-[180px]">
                 <span className="text-sm font-semibold text-gray-700">
                   Designation
                 </span>
               </div>
-              <div className="min-w-[100px]">
+              <div className="w-[100px]">
                 <span className="text-sm font-semibold text-gray-700">
                   Experience
                 </span>
@@ -483,7 +523,7 @@ export default function Team() {
               >
                 <div className="flex items-center gap-4 flex-1">
                   {/* Member Info */}
-                  <div className="flex items-center gap-4 min-w-[200px]">
+                  <div className="flex items-center gap-4 w-[250px]">
                     <Avatar className="h-12 w-12">
                       <AvatarImage src="/placeholder.svg" alt={member.name} />
                       <AvatarFallback className="bg-gray-200 text-gray-700">
@@ -501,19 +541,19 @@ export default function Team() {
                   </div>
 
                   {/* Department */}
-                  <div className="min-w-[120px]">
+                  <div className="w-[160px]">
                     <p className="text-sm text-gray-600">{member.department}</p>
                   </div>
 
                   {/* Designation */}
-                  <div className="min-w-[140px]">
+                  <div className="w-[180px]">
                     <p className="text-sm font-medium text-gray-900">
                       {member.designation}
                     </p>
                   </div>
 
                   {/* Experience */}
-                  <div className="min-w-[100px]">
+                  <div className="w-[100px]">
                     <p className="text-sm font-medium text-gray-900">
                       {member.experience}
                     </p>
@@ -538,6 +578,10 @@ export default function Team() {
                     variant="outline"
                     size="sm"
                     className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => {
+                      setEditingMember(member);
+                      setShowEditMemberModal(true);
+                    }}
                   >
                     <Edit className="mr-1 h-3 w-3" />
                     Edit
@@ -599,15 +643,7 @@ export default function Team() {
         </div>
       </div>
 
-      {/* Filter Modal */}
-      <FilterModal
-        open={showFilterModal}
-        onOpenChange={setShowFilterModal}
-        title="Filter Team Members"
-        fields={filterFields}
-        onApply={handleApplyFilters}
-        initialValues={appliedFilters}
-      />
+
 
       {/* View Modal */}
       <ViewModal
@@ -616,6 +652,163 @@ export default function Team() {
         type="team-member"
         data={selectedMember}
       />
+
+      {/* Edit Member Modal */}
+      <Dialog open={showEditMemberModal} onOpenChange={setShowEditMemberModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Team Member</DialogTitle>
+          </DialogHeader>
+          <Form {...editMemberForm}>
+            <form onSubmit={editMemberForm.handleSubmit(handleEditMemberSubmit)} className="space-y-6 py-4">
+              {/* Basic Information */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={editMemberForm.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Enter full name (alphabets only)" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editMemberForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email" 
+                          placeholder="Enter email address" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={editMemberForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="tel" 
+                          placeholder="+91-XXXXXXXXXX or 10 digits" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editMemberForm.control}
+                  name="experience"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Experience (Years) *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="e.g., 5" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  control={editMemberForm.control}
+                  name="department"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Department *</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select department" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="engineering">Engineering</SelectItem>
+                          <SelectItem value="design">Design</SelectItem>
+                          <SelectItem value="product">Product</SelectItem>
+                          <SelectItem value="hr">Human Resources</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="sales">Sales</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editMemberForm.control}
+                  name="designation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Designation *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="e.g., Senior Developer" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowEditMemberModal(false);
+                    editMemberForm.reset();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-gray-800 hover:bg-gray-900"
+                >
+                  Update Member
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

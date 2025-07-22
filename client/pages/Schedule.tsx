@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ViewModal } from "@/components/ViewModal";
-import { FilterModal } from "@/components/FilterModal";
+import { FilterDropdown } from "@/components/FilterDropdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,14 +114,13 @@ const quickActions = [
   "Reschedule Interviews",
   "View Calendar",
   "Set Reminders",
-  "Generate Report",
 ];
 
 export default function Schedule() {
-  const [showFilterModal, setShowFilterModal] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [appliedFilters, setAppliedFilters] = useState({});
+  const [teamMembersModalOpen, setTeamMembersModalOpen] = useState(false);
 
   const exportScheduleData = () => {
     // Prepare schedule data for export
@@ -179,10 +178,8 @@ export default function Schedule() {
   };
 
   const handleQuickAction = (action: string, index: number) => {
-    if (index === 4) {
-      // Generate Report - export .xlsx file
-      exportScheduleData();
-    }
+    // Implementation for quick actions
+    console.log(`Action selected: ${action}`);
   };
 
   return (
@@ -200,14 +197,6 @@ export default function Schedule() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="text-gray-700 border-gray-200"
-                onClick={exportScheduleData}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export Calendar
-              </Button>
               <Button className="bg-gray-800 hover:bg-gray-900 text-white">
                 <Calendar className="mr-2 h-4 w-4" />
                 Schedule Interview
@@ -229,18 +218,12 @@ export default function Schedule() {
                     Scheduled interviews for this week
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowFilterModal(true)}
-                  >
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filter
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+                <div>
+                  <FilterDropdown
+                    fields={filterFields}
+                    onApply={handleApplyFilters}
+                    initialValues={appliedFilters}
+                  />
                 </div>
               </div>
             </div>
@@ -357,6 +340,7 @@ export default function Schedule() {
                   variant="outline"
                   size="sm"
                   className="w-full mt-4 text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={() => setTeamMembersModalOpen(true)}
                 >
                   <Plus className="mr-1 h-3 w-3" />
                   Invite More Panel Members
@@ -503,15 +487,7 @@ export default function Schedule() {
         </div>
       </div>
 
-      {/* Filter Modal */}
-      <FilterModal
-        open={showFilterModal}
-        onOpenChange={setShowFilterModal}
-        title="Filter Interviews"
-        fields={filterFields}
-        onApply={handleApplyFilters}
-        initialValues={appliedFilters}
-      />
+
 
       {/* View Modal */}
       <ViewModal
@@ -520,6 +496,83 @@ export default function Schedule() {
         type="interview"
         data={selectedInterview}
       />
+
+      {/* Team Members Modal */}
+      <div className={`fixed inset-0 bg-black/50 z-50 ${teamMembersModalOpen ? 'flex' : 'hidden'} items-center justify-center`}>
+        <div className="bg-white rounded-lg w-full max-w-md mx-4 overflow-hidden">
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900">Panel Members</h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTeamMembersModalOpen(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </Button>
+          </div>
+
+          <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-4">
+              {panelMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src="/placeholder.svg" alt={member.name} />
+                      <AvatarFallback className="bg-gray-200 text-gray-700">
+                        {member.avatar}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-gray-900">{member.name}</p>
+                      <p className="text-sm text-gray-600">{member.role}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 mr-2">
+                      <div
+                        className={`w-2 h-2 rounded-full ${member.available ? "bg-green-500" : "bg-red-500"}`}
+                      />
+                      <span className="text-xs text-gray-500">
+                        {member.available ? "Available" : "Busy"}
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={`text-xs h-8 px-3 ${member.available ? 'text-blue-600 border-blue-200 hover:bg-blue-50' : 'text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                      disabled={!member.available}
+                      onClick={() => {
+                        if (member.available) {
+                          console.log(`Invite sent to ${member.name}`);
+                        }
+                      }}
+                    >
+                      <Send className="mr-1 h-3 w-3" />
+                      Send Invite
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-6 border-t border-gray-100 flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setTeamMembersModalOpen(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      </div>
     </DashboardLayout>
   );
 }

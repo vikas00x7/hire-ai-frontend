@@ -1,5 +1,6 @@
 import React, { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import {
   BarChart3,
   Users,
@@ -108,11 +109,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  const { logout } = useAuth();
+  
   const handleLogout = () => {
-    // Handle logout logic here - could redirect to login page, clear auth tokens, etc.
-    console.log("User logged out");
-    // For demo purposes, just show an alert
-    alert("You have been logged out!");
+    // Call the logout function from AuthContext to clear authentication state
+    logout();
+    // Redirect to sign-in page
+    navigate("/signin");
+    console.log("User logged out and redirected to sign-in page");
   };
 
   return (

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Upload,
   Filter,
@@ -118,7 +126,11 @@ const aiSummaryData = [
 ];
 
 export default function ResumeScreening() {
+  const navigate = useNavigate();
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const handleRunAnalysis = async () => {
     setIsAnalysisLoading(true);
@@ -126,6 +138,41 @@ export default function ResumeScreening() {
     setTimeout(() => {
       setIsAnalysisLoading(false);
     }, 3000);
+  };
+
+  const handleResumeUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      // Process uploaded files
+      console.log("Files uploaded:", files);
+      // Here you would typically send the files to a server or process them
+    }
+  };
+  
+  const showCandidateDetails = (candidate: any) => {
+    setSelectedCandidate(candidate);
+    setIsDetailsModalOpen(true);
+  };
+  
+  const handleScheduleRedirect = () => {
+    navigate("/schedule");
+    window.scrollTo(0, 0);
+  };
+  
+  const handleExport = () => {
+    // In a real implementation, this would create and download an Excel file
+    console.log("Exporting selected candidates as Excel");
+    // Mock export functionality
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(screeningResults)], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}))
+    a.download = "candidates.xlsx";
+    a.click();
   };
 
   return (
@@ -143,7 +190,18 @@ export default function ResumeScreening() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button className="bg-gray-800 hover:bg-gray-900 text-white">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                style={{ display: "none" }}
+                accept=".pdf,.doc,.docx"
+                multiple
+              />
+              <Button 
+                className="bg-gray-800 hover:bg-gray-900 text-white"
+                onClick={handleResumeUpload}
+              >
                 <Upload className="mr-2 h-4 w-4" />
                 Upload Resumes
               </Button>
@@ -246,69 +304,71 @@ export default function ResumeScreening() {
                   AI-analyzed candidate profiles
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  Sort
-                </Button>
-                <Button variant="outline" size="sm">
-                  View
-                </Button>
-              </div>
             </div>
 
             <div className="space-y-4">
               {screeningResults.map((candidate) => (
                 <div
                   key={candidate.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  className="grid grid-cols-[auto_2fr_1fr_1fr_1fr] gap-6 p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  style={{minHeight: "74px"}}
                 >
-                  <div className="flex items-center gap-4">
+                  {/* Checkbox */}
+                  <div className="flex items-center justify-center">
                     <Checkbox />
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-700">
-                          {candidate.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900">
-                          {candidate.name}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          {candidate.position} • {candidate.experience}
-                        </p>
-                      </div>
+                  </div>
+                  
+                  {/* Candidate Info */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-medium text-gray-700">
+                        {candidate.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">
+                        {candidate.name}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {candidate.position}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {candidate.experience}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 text-yellow-500" />
-                        <span className="font-semibold text-gray-900">
-                          {candidate.matchScore}%
-                        </span>
-                      </div>
+                  {/* Match Score */}
+                  <div className="flex items-center">
+                    <div className="text-center w-full">
+                      <span className="font-semibold text-gray-900">
+                        {candidate.matchScore}%
+                      </span>
                       <p className="text-xs text-gray-500">Match</p>
                     </div>
+                  </div>
 
-                    <div className="flex gap-1">
-                      {candidate.badges.map((badge, index) => (
-                        <Badge
-                          key={index}
-                          className={`${candidate.badgeColor} border-none text-xs`}
-                        >
-                          {badge}
-                        </Badge>
-                      ))}
-                    </div>
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-1 items-center">
+                    {candidate.badges.map((badge, index) => (
+                      <Badge
+                        key={index}
+                        className={`${candidate.badgeColor} border-none text-xs`}
+                      >
+                        {badge}
+                      </Badge>
+                    ))}
+                  </div>
 
+                  {/* Review Button */}
+                  <div className="flex justify-end">
                     <Button
                       size="sm"
-                      className="bg-gray-800 hover:bg-gray-900 text-white"
+                      className="bg-gray-800 hover:bg-gray-900 text-white w-full max-w-[80px]"
+                      onClick={() => showCandidateDetails(candidate)}
                     >
                       Review
                     </Button>
@@ -389,6 +449,7 @@ export default function ResumeScreening() {
                   variant="outline"
                   size="sm"
                   className="text-gray-600 border-gray-200"
+                  onClick={handleScheduleRedirect}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
                   Schedule
@@ -405,6 +466,7 @@ export default function ResumeScreening() {
                   variant="outline"
                   size="sm"
                   className="text-gray-600 border-gray-200"
+                  onClick={handleExport}
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Export
@@ -428,6 +490,110 @@ export default function ResumeScreening() {
             </div>
           </div>
         </div>
+        
+        {/* Candidate Details Modal */}
+        <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">Candidate Details</DialogTitle>
+              <DialogDescription className="text-gray-600">
+                Full profile information
+              </DialogDescription>
+            </DialogHeader>
+            {selectedCandidate && (
+              <div className="space-y-4 py-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-sm font-medium text-gray-700">
+                      {selectedCandidate.name
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      {selectedCandidate.name}
+                    </h3>
+                    <p className="text-sm text-gray-600">{selectedCandidate.position}</p>
+                  </div>
+                </div>
+                
+                <div className="border-t border-b border-gray-200 py-4">
+                  <dl className="space-y-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <dt className="text-sm font-medium text-gray-500">Experience</dt>
+                      <dd className="text-sm text-gray-900 col-span-2">
+                        {selectedCandidate.experience}
+                      </dd>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      <dt className="text-sm font-medium text-gray-500">Match Score</dt>
+                      <dd className="text-sm text-gray-900 col-span-2">
+                        <span>{selectedCandidate.matchScore}%</span>
+                      </dd>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      <dt className="text-sm font-medium text-gray-500">Tags</dt>
+                      <dd className="text-sm text-gray-900 col-span-2">
+                        <div className="flex flex-wrap gap-2">
+                          {selectedCandidate.badges.map((badge: string, index: number) => (
+                            <Badge
+                              key={index}
+                              className={`${selectedCandidate.badgeColor} border-none text-xs`}
+                            >
+                              {badge}
+                            </Badge>
+                          ))}
+                        </div>
+                      </dd>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      <dt className="text-sm font-medium text-gray-500">Contact</dt>
+                      <dd className="text-sm text-gray-900 col-span-2">
+                        email@example.com<br />
+                        +91-9876543210
+                      </dd>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      <dt className="text-sm font-medium text-gray-500">Resume</dt>
+                      <dd className="text-sm text-blue-600 col-span-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-blue-600 border-blue-200"
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          View Resume
+                        </Button>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+                
+                <div className="flex justify-end gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDetailsModalOpen(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    className="bg-gray-800 hover:bg-gray-900 text-white"
+                    onClick={handleScheduleRedirect}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Schedule Interview
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

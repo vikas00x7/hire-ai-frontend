@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ViewModal } from "@/components/ViewModal";
-import { FilterModal } from "@/components/FilterModal";
+import { FilterDropdown } from "@/components/FilterDropdown";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import * as XLSX from "xlsx";
 import {
   Select,
   SelectContent,
@@ -33,7 +33,6 @@ import {
   Plus,
   Search,
   Filter,
-  Download,
   Users,
   Eye,
   MessageSquare,
@@ -44,6 +43,9 @@ import {
   Upload,
   FileText,
 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { candidateFormSchema, type CandidateFormValues } from "@/lib/validations/candidateValidation";
 
 const metricsData = [
   {
@@ -126,34 +128,44 @@ const candidatesData = [
 ];
 
 export default function Candidates() {
-  const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAddCandidateForm, setShowAddCandidateForm] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [formSubmitError, setFormSubmitError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isValid },
+  } = useForm<CandidateFormValues>({
+    resolver: zodResolver(candidateFormSchema),
+    mode: "onChange",
+  });
 
-  const exportCandidatesData = () => {
-    // Prepare candidates data for export
-    const exportData = candidatesData.map((candidate) => ({
-      Name: candidate.name,
-      Position: candidate.position,
-      "Applied Date": candidate.appliedDate,
-      Status: candidate.status,
-      "Match Score": `${candidate.matchScore}%`,
-      Experience: candidate.experience,
-    }));
-
-    // Create workbook
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(exportData);
-
-    XLSX.utils.book_append_sheet(wb, ws, "Candidates");
-
-    // Generate filename with current date
-    const date = new Date().toISOString().split("T")[0];
-    const filename = `candidates-data-${date}.xlsx`;
-
-    // Download file
-    XLSX.writeFile(wb, filename);
+  const onSubmitCandidate = (data: CandidateFormValues) => {
+    try {
+      // Here you would typically send the form data to your backend API
+      console.log("Form submitted successfully:", data);
+      
+      // Close form and reset values on success
+      setShowAddCandidateForm(false);
+      reset();
+      setFormSubmitError(null);
+      
+      // You might want to refresh the candidate list after adding
+      // or show a success message
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setFormSubmitError("An error occurred while adding the candidate. Please try again.");
+    }
+  };
+  
+  const handleCancelForm = () => {
+    setShowAddCandidateForm(false);
+    reset();
+    setFormSubmitError(null);
   };
 
   const filterFields = [
@@ -214,22 +226,11 @@ export default function Candidates() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="text-gray-700 border-gray-200"
-                onClick={() => setShowFilterModal(true)}
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
-              <Button
-                variant="outline"
-                className="text-gray-700 border-gray-200"
-                onClick={exportCandidatesData}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
+              <FilterDropdown
+                fields={filterFields}
+                onApply={handleApplyFilters}
+                initialValues={appliedFilters}
+              />
               <Dialog
                 open={showAddCandidateForm}
                 onOpenChange={setShowAddCandidateForm}
@@ -240,51 +241,90 @@ export default function Candidates() {
                     Add Candidate
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add New Candidate</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-4 py-4">
+                  <form onSubmit={handleSubmit(onSubmitCandidate)} className="space-y-4 py-4">
+                    {formSubmitError && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md text-sm">
+                        {formSubmitError}
+                      </div>
+                    )}
                     <div className="space-y-2">
-                      <Label htmlFor="candidateName">Full Name</Label>
+                      <Label htmlFor="fullName">Full Name</Label>
                       <Input
-                        id="candidateName"
+                        id="fullName"
                         placeholder="Enter candidate's full name"
+                        {...register("fullName")}
+                        className={errors.fullName ? "border-red-500" : ""}
                       />
+                      {errors.fullName && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.fullName.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="candidateEmail">Email Address</Label>
+                      <Label htmlFor="email">Email Address</Label>
                       <Input
-                        id="candidateEmail"
+                        id="email"
                         type="email"
                         placeholder="Enter email address"
+                        {...register("email")}
+                        className={errors.email ? "border-red-500" : ""}
                       />
+                      {errors.email && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.email.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="candidatePhone">Phone Number</Label>
+                      <Label htmlFor="phone">Phone Number</Label>
                       <Input
-                        id="candidatePhone"
+                        id="phone"
                         placeholder="Enter phone number"
+                        {...register("phone")}
+                        className={errors.phone ? "border-red-500" : ""}
                       />
+                      {errors.phone && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.phone.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="candidatePosition">
+                      <Label htmlFor="position">
                         Position Applied For
                       </Label>
                       <Input
-                        id="candidatePosition"
+                        id="position"
                         placeholder="e.g. Senior Frontend Developer"
+                        {...register("position")}
+                        className={errors.position ? "border-red-500" : ""}
                       />
+                      {errors.position && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.position.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="candidateExperience">
+                      <Label htmlFor="experience">
                         Years of Experience
                       </Label>
                       <Input
-                        id="candidateExperience"
-                        type="number"
+                        id="experience"
                         placeholder="e.g. 5"
+                        {...register("experience")}
+                        className={errors.experience ? "border-red-500" : ""}
                       />
+                      {errors.experience && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.experience.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="candidateResume">Resume Upload</Label>
@@ -314,23 +354,22 @@ export default function Candidates() {
                     </div>
                     <div className="flex gap-3 pt-4">
                       <Button
+                        type="button"
                         variant="outline"
                         className="flex-1"
-                        onClick={() => setShowAddCandidateForm(false)}
+                        onClick={handleCancelForm}
                       >
                         Cancel
                       </Button>
                       <Button
+                        type="submit"
                         className="flex-1 bg-gray-800 hover:bg-gray-900"
-                        onClick={() => {
-                          // Handle form submission here
-                          setShowAddCandidateForm(false);
-                        }}
+                        disabled={!isValid}
                       >
                         Add Candidate
                       </Button>
                     </div>
-                  </div>
+                  </form>
                 </DialogContent>
               </Dialog>
             </div>
@@ -374,75 +413,69 @@ export default function Candidates() {
         </div>
 
         {/* Candidates List */}
-        <div className="bg-white rounded-lg border border-gray-200">
+        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
           {/* Header Row */}
-          <div className="flex items-center justify-between p-6 bg-gray-50 border-b border-gray-200">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="min-w-[150px]">
+          <div className="grid grid-cols-[1.5fr_1.5fr_1fr_1fr_0.8fr_0.8fr_1.4fr] items-center p-6 bg-gray-50 border-b border-gray-200 min-w-[900px] w-full">
+              <div>
                 <span className="text-sm font-semibold text-gray-700">
                   Name
                 </span>
               </div>
-              <div className="min-w-[140px]">
+              <div>
                 <span className="text-sm font-semibold text-gray-700">
                   Role
                 </span>
               </div>
-              <div className="min-w-[100px]">
+              <div>
                 <span className="text-sm font-semibold text-gray-700">
                   Phase
                 </span>
               </div>
-              <div className="min-w-[100px]">
+              <div>
                 <span className="text-sm font-semibold text-gray-700">
                   Apply Date
                 </span>
               </div>
-              <div className="min-w-[120px] text-center">
+              <div className="text-center">
                 <span className="text-sm font-semibold text-gray-700">
                   ATS Score
                 </span>
               </div>
-              <div className="min-w-[100px]">
+              <div>
                 <span className="text-sm font-semibold text-gray-700">
                   Experience
                 </span>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-sm font-semibold text-gray-700">
-                Actions
-              </span>
-            </div>
+              <div className="text-right">
+                <span className="text-sm font-semibold text-gray-700">
+                  Actions
+                </span>
+              </div>
           </div>
 
           <div className="space-y-0">
             {candidatesData.map((candidate, index) => (
               <div
                 key={candidate.id}
-                className={`flex items-center justify-between p-6 ${
-                  index !== candidatesData.length - 1
-                    ? "border-b border-gray-100"
-                    : ""
-                }`}
+                className="grid grid-cols-[1.5fr_1.5fr_1fr_1fr_0.8fr_0.8fr_1.4fr] items-center p-6 border-b border-gray-100"
+                style={{minHeight: "74px"}}
               >
-                <div className="flex items-center gap-4 flex-1">
                   {/* Name */}
-                  <div className="min-w-[150px]">
+                  <div>
                     <h3 className="font-semibold text-gray-900">
                       {candidate.name}
                     </h3>
                   </div>
 
                   {/* Role */}
-                  <div className="min-w-[140px]">
+                  <div>
                     <p className="text-sm text-gray-600">
                       {candidate.position}
                     </p>
                   </div>
 
                   {/* Phase */}
-                  <div className="min-w-[100px]">
+                  <div>
                     <Badge
                       className={`${candidate.statusColor} border-none font-medium`}
                     >
@@ -451,36 +484,30 @@ export default function Candidates() {
                   </div>
 
                   {/* Apply Date */}
-                  <div className="min-w-[100px]">
+                  <div>
                     <p className="text-sm text-gray-600">
                       {candidate.appliedDate}
                     </p>
                   </div>
 
                   {/* ATS Score */}
-                  <div className="min-w-[120px] text-center">
-                    <div className="flex items-center gap-1">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                        <span className="text-xs font-bold text-green-800">
-                          {candidate.matchScore}%
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Match Score</p>
-                      </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                      <span className="text-sm font-bold text-green-800">
+                        {candidate.matchScore}%
+                      </span>
                     </div>
                   </div>
 
                   {/* Experience */}
-                  <div className="min-w-[100px]">
+                  <div>
                     <p className="text-sm font-medium text-gray-900">
                       {candidate.experience}
                     </p>
                   </div>
-                </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-end">
                   <Button
                     variant="outline"
                     size="sm"
@@ -496,6 +523,10 @@ export default function Candidates() {
                   <Button
                     size="sm"
                     className="bg-gray-800 hover:bg-gray-900 text-white"
+                    onClick={() => {
+                      navigate("/schedule");
+                      window.scrollTo(0, 0);
+                    }}
                   >
                     <Calendar className="mr-1 h-3 w-3" />
                     Interview
@@ -551,15 +582,7 @@ export default function Candidates() {
         </div>
       </div>
 
-      {/* Filter Modal */}
-      <FilterModal
-        open={showFilterModal}
-        onOpenChange={setShowFilterModal}
-        title="Filter Candidates"
-        fields={filterFields}
-        onApply={handleApplyFilters}
-        initialValues={appliedFilters}
-      />
+
 
       {/* View Modal */}
       <ViewModal

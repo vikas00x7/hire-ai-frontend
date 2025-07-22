@@ -22,6 +22,7 @@ import {
   Star,
   X,
 } from "lucide-react";
+import { formatPhoneNumberToIndianFormat } from "@/lib/validations/candidateValidation";
 
 interface ViewModalProps {
   open: boolean;
@@ -83,7 +84,7 @@ export function ViewModal({ open, onOpenChange, type, data }: ViewModalProps) {
           <div className="flex items-center gap-3">
             <Phone className="h-4 w-4 text-gray-400" />
             <span className="text-sm text-gray-600">
-              {data.phone || "+1 (555) 123-4567"}
+              {formatPhoneNumberToIndianFormat(data.phone || "+1 (555) 123-4567")}
             </span>
           </div>
         </div>
@@ -175,7 +176,7 @@ export function ViewModal({ open, onOpenChange, type, data }: ViewModalProps) {
           <div className="flex items-center gap-3">
             <Phone className="h-4 w-4 text-gray-400" />
             <span className="text-sm text-gray-600">
-              {data.phone || "+1 (555) 987-6543"}
+              {formatPhoneNumberToIndianFormat(data.phone || "+91-99999-99999")}
             </span>
           </div>
         </div>

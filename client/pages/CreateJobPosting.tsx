@@ -47,13 +47,6 @@ export default function CreateJobPosting() {
                 <Eye className="mr-2 h-4 w-4" />
                 Preview
               </Button>
-              <Button
-                variant="outline"
-                className="text-gray-700 border-gray-200"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save Draft
-              </Button>
               <Button className="bg-gray-800 hover:bg-gray-900 text-white">
                 <Send className="mr-2 h-4 w-4" />
                 Publish Job

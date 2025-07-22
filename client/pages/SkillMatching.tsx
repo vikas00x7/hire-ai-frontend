@@ -1,7 +1,15 @@
 import React, { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { FilterModal } from "@/components/FilterModal";
+import { FilterDropdown } from "@/components/FilterDropdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -147,8 +155,10 @@ export default function SkillMatching() {
     experience: 20,
     cultural: 15,
   });
-  const [showFilterModal, setShowFilterModal] = useState(false);
+
   const [appliedFilters, setAppliedFilters] = useState({});
+  const [selectedCandidate, setSelectedCandidate] = useState<typeof candidatesData[0] | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const exportSkillMatchingResults = () => {
     // Prepare skill matching data for export
@@ -243,14 +253,6 @@ export default function SkillMatching() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="text-gray-700 border-gray-200"
-                onClick={exportSkillMatchingResults}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export Results
-              </Button>
               <Button
                 className="bg-gray-800 hover:bg-gray-900 text-white"
                 onClick={handleRunAnalysis}
@@ -458,19 +460,12 @@ export default function SkillMatching() {
                   Detailed skill breakdown for top matching candidates
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowFilterModal(true)}
-                >
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filter
-                </Button>
-                <Button variant="outline" size="sm">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Sort
-                </Button>
+              <div>
+                <FilterDropdown
+                  fields={filterFields}
+                  onApply={handleApplyFilters}
+                  initialValues={appliedFilters}
+                />
               </div>
             </div>
           </div>
@@ -556,6 +551,10 @@ export default function SkillMatching() {
                       <Button
                         size="sm"
                         className="bg-gray-800 hover:bg-gray-900 text-white"
+                        onClick={() => {
+                          setSelectedCandidate(candidate);
+                          setIsDetailsModalOpen(true);
+                        }}
                       >
                         View Details
                       </Button>
@@ -612,15 +611,108 @@ export default function SkillMatching() {
         </div>
       </div>
 
-      {/* Filter Modal */}
-      <FilterModal
-        open={showFilterModal}
-        onOpenChange={setShowFilterModal}
-        title="Filter Candidates"
-        fields={filterFields}
-        onApply={handleApplyFilters}
-        initialValues={appliedFilters}
-      />
+      {/* Candidate Details Modal */}
+      {selectedCandidate && (
+        <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-gray-900">
+                Candidate Profile
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                Complete skill assessment and contact information
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4 space-y-6">
+              {/* Candidate Header */}
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-medium text-gray-700">
+                    {selectedCandidate.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {selectedCandidate.name}
+                  </h3>
+                  <p className="text-gray-600">{selectedCandidate.experience}</p>
+                </div>
+                <div className="ml-auto flex items-center">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <span className="text-xs font-bold text-green-800">
+                      {selectedCandidate.overallScore}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Skill Levels */}
+              <div className="space-y-4">
+                <h4 className="text-md font-semibold text-gray-900">Skill Assessment</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(selectedCandidate.skills).map(([skill, details]: [string, any]) => (
+                    <div key={skill} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${details.color}`}></div>
+                        <span className="text-sm text-gray-900">{skill}</span>
+                      </div>
+                      <Badge className={`${details.color} text-white border-none`}>
+                        {details.level}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-3">
+                <h4 className="text-md font-semibold text-gray-900">Contact Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Email</p>
+                    <p className="text-gray-900">candidate@example.com</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Phone</p>
+                    <p className="text-gray-900">+91-9876543210</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resume Link */}
+              <div>
+                <h4 className="text-md font-semibold text-gray-900 mb-2">Resume</h4>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-700 border-gray-200"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Resume
+                </Button>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                className="text-gray-700 border-gray-200"
+                onClick={() => setIsDetailsModalOpen(false)}
+              >
+                Close
+              </Button>
+              <Button className="bg-gray-800 hover:bg-gray-900 text-white">
+                Schedule Interview
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
     </DashboardLayout>
   );
 }
